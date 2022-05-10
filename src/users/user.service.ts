@@ -1,40 +1,81 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Users } from "./user.entity";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Password } from 'src/functions/password';
+import { Repository } from 'typeorm';
+import { IUpdatePassword, IUserResponse } from './responses/responses';
+import { Users } from './user.entity';
 
 @Injectable()
 export class UserService {
-    constructor(@InjectRepository(Users)
-    private userRepository : Repository<Users>,
-    ){}
+  constructor(
+    @InjectRepository(Users)
+    private userRepository: Repository<Users>,
+  ) {}
 
-    async getAll():Promise<Users[]> {
-        return await this.userRepository.find();
+  async getAll(): Promise<Users[]> {
+    return await this.userRepository.find();
+  }
+
+  async getByEmail(Email: string): Promise<IUserResponse> {
+    try {
+      const { email, name, lastname, id } = await this.userRepository.findOneBy(
+        {
+          email: Email,
+        },
+      );
+      const userFound = {
+        email,
+        id,
+        lastname,
+        name,
+      } as IUserResponse;
+      return userFound;
+    } catch (error) {
+      return undefined;
     }
+  }
 
-    async getByEmail(email :string) :Promise<Users> {
-        
-        return await this.userRepository.findOneBy({email})
+  async getById(Id: number): Promise<IUserResponse> {
+    try {
+      const userFound = await this.userRepository.findOneBy({
+        id: Id,
+      });
+
+      const user: IUserResponse = {
+        email: userFound.email,
+        name: userFound.name,
+        lastname: userFound.lastname,
+        id: userFound.id,
+      };
+      return user;
+    } catch (error) {
+      return undefined;
     }
+  }
 
-    async getById(id : number):Promise<Users> {
-    
-        console.log("Cheguei")
-        return await this.userRepository.findOneBy({id});
-    }
+  async createUser(user: Users): Promise<Users> {
+    //Encryp Password
+    user.password = await Password.encrypt(user.password);
 
-    async createUser(user : Users):Promise<Users> {
+    return await this.userRepository.save(user);
+  }
 
-        return await this.userRepository.save(user);
-    }
+  async updatePassword(password: string, id: number): Promise<IUpdatePassword> {
+    await this.userRepository.query(
+      `UPDATE users SET password='${password}' WHERE id=${id};`,
+    );
 
-    async updatePassword(password:string , id:number) : Promise<[number , Users[]]> {
+    return {
+      ok: true,
+      mensagem: 'Senha alterada com sucesso!',
+    } as IUpdatePassword;
+  }
 
-        return await this.userRepository.query(`UPDATE users SET password=${password} WHERE id=${id}`);
-    }
+  async deleteUser(id: number): Promise<Users> {
+    return await this.userRepository.query(`DELETE FROM users WHERE id=${id}`);
+  }
 
-    async deleteUser(id : number):Promise<Users> {
-        return await this.userRepository.query(`DELETE FROM users WHERE id=${id}`);
-    }
+  async getPassword(id: number): Promise<string> {
+    return (await this.userRepository.findOneBy({ id })).password;
+  }
 }

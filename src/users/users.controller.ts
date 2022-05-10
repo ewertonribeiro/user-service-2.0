@@ -1,45 +1,85 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { Password } from 'src/functions/password';
+import { IPasswords } from './requests/passwords.request';
+import { IUpdatePassword, IUserResponse } from './responses/responses';
 import { Users } from './user.entity';
 import { UserService } from './user.service';
 
 @Controller('users')
 export class UsersController {
-    constructor(private userService : UserService){}
+  constructor(private userService: UserService) {}
 
-    @Get()
-    async getUsers():Promise<Users[]> {
-
-        return await this.userService.getAll();
+  @Get()
+  async getUsers(): Promise<Users[]> {
+    try {
+      return await this.userService.getAll();
+    } catch (error) {
+      return error;
     }
+  }
 
-    @Get('id/:id')
-    async getUserByid(@Param('id') id : number):Promise<Users> {
-
-        return await this.userService.getById(id);
+  @Get('id/:id')
+  async getUserByid(@Param('id') id: number): Promise<IUserResponse> {
+    try {
+      return await this.userService.getById(id);
+    } catch (error) {
+      return error;
     }
+  }
 
-    @Get('email/:email')
-    async getUserByEmail(@Param('email') email : string ):Promise<Users> {
-
-        return await this.userService.getByEmail(email);
+  @Get('email/:email')
+  async getUserByEmail(@Param('email') email: string): Promise<IUserResponse> {
+    try {
+      return await this.userService.getByEmail(email);
+    } catch (error) {
+      return error;
     }
+  }
 
-    @Post()
-    async createUser(@Body() user:Users ) : Promise<Users> {
-
-        return await this.userService.createUser(user);
+  @Post()
+  async createUser(@Body() user: Users): Promise<Users> {
+    try {
+      return await this.userService.createUser(user);
+    } catch (error) {
+      return error;
     }
+  }
 
-    @Put('password')
-    async updatePassword(@Body() {password,id} :Users):Promise<[number,Users[]]> {
+  @Put('password/:id')
+  async updatePassword(
+    @Body() { password, newpassword }: IPasswords,
+    @Param('id') id: number,
+  ): Promise<IUpdatePassword> {
+    const dbPass = await this.userService.getPassword(id);
 
-        return await this.userService.updatePassword(password,id);
+    const comparePassword = await Password.Compare(password, dbPass);
+
+    try {
+      if (!comparePassword) return { ok: false, mensagem: 'Senha Invalida' };
+
+      return await this.userService.updatePassword(
+        await Password.encrypt(newpassword),
+        id,
+      );
+    } catch (error) {
+      return error;
     }
-   
-    @Delete('delete/:id')
-    async deleteUser(@Param('id') id : number):Promise<Users> {
+  }
 
-        return await this.userService.deleteUser(id);
+  @Delete('delete/:id')
+  async deleteUser(@Param('id') id: number): Promise<Users> {
+    try {
+      return await this.userService.deleteUser(id);
+    } catch (error) {
+      return error;
     }
-
+  }
 }
