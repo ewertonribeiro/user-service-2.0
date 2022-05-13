@@ -5,6 +5,7 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TokenMiddleware } from 'src/users/middlewares/token.middleware';
 import { DataMiddleware } from './middlewares/dados.middleware';
 import {
   UserExistsMiddleware,
@@ -16,14 +17,24 @@ import { UsersController } from './users.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Users])],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, UserService],
   providers: [UserService],
   controllers: [UsersController],
 })
 export class UsersModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(UserExistsMiddleware)
+      .apply(TokenMiddleware)
+      .forRoutes(
+        { path: 'users', method: RequestMethod.GET },
+        { path: 'users/id/:id', method: RequestMethod.GET },
+        { path: 'users/email/:email', method: RequestMethod.GET },
+        { path: 'users/password/:id', method: RequestMethod.PUT },
+        { path: 'users/delete/:id', method: RequestMethod.DELETE },
+      );
+
+    consumer
+      .apply(DataMiddleware, UserExistsMiddleware)
       .forRoutes({ path: 'users', method: RequestMethod.POST });
 
     consumer
@@ -34,8 +45,5 @@ export class UsersModule implements NestModule {
         { path: 'users/id/:id', method: RequestMethod.GET },
         { path: 'users/password/:id', method: RequestMethod.PUT },
       );
-    consumer
-      .apply(DataMiddleware)
-      .forRoutes({ path: 'users', method: RequestMethod.POST });
   }
 }

@@ -3,13 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Post,
   Put,
+  Res,
 } from '@nestjs/common';
-import { Password } from 'src/functions/password';
 import { IPasswords } from './requests/passwords.request';
-import { IUpdatePassword, IUserResponse } from './responses/responses';
+import { IUpdateResponse, IUserResponse } from './responses/responses';
 import { Users } from './user.entity';
 import { UserService } from './user.service';
 
@@ -22,16 +23,22 @@ export class UsersController {
     try {
       return await this.userService.getAll();
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 
   @Get('id/:id')
   async getUserByid(@Param('id') id: number): Promise<IUserResponse> {
     try {
-      return await this.userService.getById(id);
+      const user = await this.userService.getById(id);
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        lastname: user.lastname,
+      };
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 
@@ -40,7 +47,7 @@ export class UsersController {
     try {
       return await this.userService.getByEmail(email);
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 
@@ -49,7 +56,7 @@ export class UsersController {
     try {
       return await this.userService.createUser(user);
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 
@@ -57,29 +64,20 @@ export class UsersController {
   async updatePassword(
     @Body() { password, newpassword }: IPasswords,
     @Param('id') id: number,
-  ): Promise<IUpdatePassword> {
-    const dbPass = await this.userService.getPassword(id);
-
-    const comparePassword = await Password.Compare(password, dbPass);
-
+  ): Promise<IUpdateResponse> {
     try {
-      if (!comparePassword) return { ok: false, mensagem: 'Senha Invalida' };
-
-      return await this.userService.updatePassword(
-        await Password.encrypt(newpassword),
-        id,
-      );
+      return await this.userService.updatePassword(password, newpassword, id);
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 
   @Delete('delete/:id')
-  async deleteUser(@Param('id') id: number): Promise<Users> {
+  async deleteUser(@Param('id') id: number): Promise<IUpdateResponse> {
     try {
       return await this.userService.deleteUser(id);
     } catch (error) {
-      return error;
+      throw new HttpException(error.message, 400);
     }
   }
 }

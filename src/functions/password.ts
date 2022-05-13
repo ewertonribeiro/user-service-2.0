@@ -2,7 +2,6 @@ import { compare, hash } from 'bcrypt';
 
 export const Password = {
   async Compare(password: string, hash: string): Promise<boolean> {
-    console.log(password, hash);
     try {
       const ComprePassword = await compare(password, hash);
 

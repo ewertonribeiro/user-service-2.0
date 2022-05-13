@@ -3,9 +3,10 @@ export interface IUserResponse {
   lastname: string;
   email: string;
   id: number;
+  token?: string;
 }
 
-export interface IUpdatePassword {
+export interface IUpdateResponse {
   ok: boolean;
   mensagem: string;
 }
